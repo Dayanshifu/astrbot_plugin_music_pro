@@ -291,4 +291,4 @@ class Main(Star):
         try:
             await event.send(MessageChain([Record(file=audio_url)]))
         except Exception as e:
-            await self.search_and_show_net(event, title+' '+artists, tutle=title)
+            await self.search_and_show_net(event, title+' '+artists, title=title)
