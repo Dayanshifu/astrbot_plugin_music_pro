@@ -80,7 +80,7 @@ class API:
     "Dayanshifu", 
     "高级点歌", 
     "1.0",
-    "https://github.com/Dayanshifu/"
+    "https://github.com/Dayanshifu/astrbot_plugin_music_pro"
 )
 class Main(Star):
     def __init__(self, context:Context, config: AstrBotConfig):
