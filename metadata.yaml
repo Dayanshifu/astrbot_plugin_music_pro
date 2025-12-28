@@ -1,0 +1,8 @@
+name: "astrbot_plugin_music_pro"
+display_name: "高级点歌"
+desc: "点歌插件，智能使用多个api，达成免费听各种音乐"
+author: "Dayanshifu"
+repo: "https://github.com/Dayanshifu/"
+social_link: "https://github.com/Dayanshifu"
+version: "1.0"
+config: true
