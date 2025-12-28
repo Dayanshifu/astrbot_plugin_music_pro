@@ -1,6 +1,5 @@
-import re
+import os
 import time
-import base64
 import aiohttp
 import asyncio
 import urllib.parse
@@ -12,7 +11,7 @@ from astrbot.api import logger
 from astrbot.api import AstrBotConfig
 from astrbot.api.event import AstrMessageEvent, filter
 from astrbot.core.message.message_event_result import MessageChain
-from astrbot.api.message_components import Plain, Image, Record
+from astrbot.api.message_components import Plain, Record
 
 class API:
     def __init__(self, api_url: str, session: aiohttp.ClientSession):
@@ -213,7 +212,7 @@ class Main(Star):
     async def search_and_show(self, event: AstrMessageEvent, keyword: str):
         if keyword=="兰州一中校歌":
             try:
-                await event.send(MessageChain([Record(file=f"{get_astrbot_plugin_path()}\\astrbot_plugin_music_pro\\1.mp3")]))
+                await event.send(MessageChain([Record(file=os.path.join(get_astrbot_plugin_path(), "astrbot_plugin_music_pro", "1.mp3"))]))
             except Exception as e:
                 logger.error(f"Music plugin: Failed to send audio. Error: {e!s}")
                 await event.send(MessageChain([Plain("呜...播放歌曲的时候失败了喵...可能是音频格式不支持呢")]))
