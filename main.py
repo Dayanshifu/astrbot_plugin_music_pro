@@ -159,7 +159,7 @@ class Main(Star):
         if session_id in self.waiting_users:
             del self.waiting_users[session_id]
 
-    async def search_and_show_net(self, event: AstrMessageEvent, keyword: str):
+    async def search_and_show_net(self, event: AstrMessageEvent, keyword: str, title: str=''):
         try:
             songs = await self.api.search_songs_net(keyword, 1)
         except Exception as e:
@@ -167,6 +167,13 @@ class Main(Star):
             await event.send(MessageChain([Plain(f"呜喵...连接断了...请稍后再试喵？")]))
             return
 
+        if not songs:
+            try:
+                songs = await self.api.search_songs_net(title, 1)
+            except Exception as e:
+                logger.error(f"Netease Music plugin: API search failed. Error: {e!s}")
+                await event.send(MessageChain([Plain(f"呜喵...连接断了...请稍后再试喵？")]))
+                return
         if not songs:
             await event.send(MessageChain([Plain(f"找不到「{keyword}」这首歌喵... ")]))
             return
@@ -284,4 +291,4 @@ class Main(Star):
         try:
             await event.send(MessageChain([Record(file=audio_url)]))
         except Exception as e:
-            await self.search_and_show_net(event, title+' '+artists)
+            await self.search_and_show_net(event, title+' '+artists, tutle=title)
