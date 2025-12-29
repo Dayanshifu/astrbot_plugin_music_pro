@@ -224,6 +224,13 @@ class Main(Star):
                 logger.error(f"Music plugin: Failed to send audio. Error: {e!s}")
                 await event.send(MessageChain([Plain("呜...播放歌曲的时候失败了喵...可能是音频格式不支持呢")]))
             return
+        if keyword=="皇后大道东":
+            try:
+                await event.send(MessageChain([Record(file=os.path.join(get_astrbot_plugin_path(), "astrbot_plugin_music_pro", "皇后大道东.mp3"))]))
+            except Exception as e:
+                logger.error(f"Music plugin: Failed to send audio. Error: {e!s}")
+                await event.send(MessageChain([Plain("呜...播放歌曲的时候失败了喵...可能是音频格式不支持呢")]))
+            return
         try:
             songs = await self.api.search_songs(keyword, self.config["search_limit"])
         except Exception as e:
