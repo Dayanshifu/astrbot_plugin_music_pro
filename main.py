@@ -70,7 +70,6 @@ class API:
             data = await r.json()
             return data.get("url")
         
-    # 新增：专用网易云单曲链接获取（匹配你给的API格式 https://163api.qijieya.cn/song/url?id=xxx）
     async def get_163_audio_url(self, song_id: int) -> Optional[str]:
         url = f"{self.base_url_net}/song/url?id={str(song_id)}"
         async with self.session.get(url) as r:
@@ -89,9 +88,7 @@ class API:
                 return await r.read()
         return None
         
-    # 新增：格式化网易云返回的歌曲数据，和原有歌曲格式统一
     def format_163_song(self, song_data: dict, insert_index: int) -> dict:
-        """格式化网易云歌曲数据为本地歌曲的统一格式"""
         return {
             "id": song_data["id"],
             "name": song_data["name"],
@@ -99,7 +96,7 @@ class API:
             "album": {"name": song_data["album"]["name"]},
             "row_number": insert_index,
             "original_id": song_data["id"],
-            "is_163": True  # 标记为网易云歌曲，用于后续区分播放
+            "is_163": True
         }
 
 @register(
@@ -239,7 +236,6 @@ class Main(Star):
             await event.send(MessageChain([Plain("呜...播放歌曲的时候失败了喵...可能是音频格式不支持呢")]))
             
     async def search_and_show(self, event: AstrMessageEvent, keyword: str):
-        # 固定歌曲特殊处理
         if keyword=="兰州一中校歌":
             try:
                 await event.send(MessageChain([Record(file=os.path.join(get_astrbot_plugin_path(), "astrbot_plugin_music_pro", "1.mp3"))]))
@@ -256,9 +252,7 @@ class Main(Star):
             return
             
         try:
-            # 1. 获取原接口的歌曲列表
             songs = await self.api.search_songs(keyword, self.config["search_limit"])
-            # 2. 获取网易云API的第一个歌曲结果
             netease_songs = await self.api.search_songs_net(keyword, 1)
         except Exception as e:
             logger.error(f"Music plugin: API search failed. Error: {e!s}")
@@ -269,33 +263,25 @@ class Main(Star):
             await event.send(MessageChain([Plain(f"找不到「{keyword}」这首歌喵... ")]))
             return
         
-        # ✅核心修改：在第三条位置插入网易云第一个歌曲结果
         insert_netease_song = None
         if netease_songs and len(netease_songs) > 0:
-            # 格式化网易云歌曲数据，和原列表格式统一，指定序号为3
             insert_netease_song = self.api.format_163_song(netease_songs[0], 3)
-            # 插入到列表第三个位置 (索引2)
             if len(songs) >= 2:
                 songs.insert(2, insert_netease_song)
             else:
-                # 如果原列表不足2条，直接追加
                 songs.append(insert_netease_song)
 
-        # 重新更新所有歌曲的序号，保证连续
         for idx, song in enumerate(songs, 1):
             song["row_number"] = idx
 
         cache_key = f"{event.get_session_id()}_{int(time.time())}"
         self.song_cache[cache_key] = songs
 
-        # 拼接返回文案
         response_lines = [f"找到了 {len(songs)} 首歌曲喵！请回复数字喵！"]
         for song in songs:
             row_num = song["row_number"]
             artists = " / ".join(a["name"] for a in song.get("artists", []))
             album = song.get("album", {}).get("name", "未知专辑")
-            # 网易云歌曲加特殊标识
-            #song_tag = "【网易云】" if song.get("is_163", False) else ""
             song_tag=''
             response_lines.append(f"{row_num}. {song_tag}{song['name']} - {artists} 《{album}》")
 
@@ -316,12 +302,9 @@ class Main(Star):
         original_id = selected_song["original_id"]
         
         try:
-            # ✅核心判断：区分是网易云歌曲还是原接口歌曲，调用对应播放接口
             if selected_song.get("is_163", False):
-                # 网易云歌曲 - 调用专用的163播放接口
                 audio_url = await self.api.get_163_audio_url(int(original_id))
             else:
-                # 原接口歌曲 - 走原播放逻辑
                 audio_url = await self.api.get_audio_url(original_id)
                 
             if not audio_url:
