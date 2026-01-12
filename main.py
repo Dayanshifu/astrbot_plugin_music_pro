@@ -294,7 +294,7 @@ class Main(Star):
             return
 
         songs = self.song_cache[cache_key]
-        if not (1 <= num <= len(songs)):
+        if not (1 <= num <= len(songs)+1):
              await event.send(MessageChain([Plain("不对不对！")]))
              return
              
