@@ -1,9 +1,15 @@
 {
+  "apikey": {
+    "type": "string",
+    "label": "柠柚apikey",
+    "description": "从柠柚api获取的apikey，获取https://api.nycnm.cn/",
+    "default": "114514191981018ba94c2e9e65158391e975032e6e0ca234a9e73b3043f6de98"
+  },
   "api_url": {
     "type": "string",
     "label": "网易云API地址",
     "description": "NeteaseCloudMusicApi 服务地址",
-    "default": "http://127.0.0.1:3000"
+    "default": "https://163api.qijieya.cn"
   },
   "quality": {
     "type": "string",
@@ -20,7 +26,7 @@
   "search_limit": {
     "type": "int",
     "label": "结果数量",
-    "description": "点个后展示的歌曲数量",
+    "description": "点歌后展示的歌曲数量",
     "default": 3
   }
 }
