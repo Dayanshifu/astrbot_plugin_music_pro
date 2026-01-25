@@ -16,15 +16,12 @@ from astrbot.api.message_components import Plain, Record
 class API:
     def __init__(self, api_url: str, session: aiohttp.ClientSession, apikey: str):
         self.session = session
-        self.base_url = "https://music.pmhs.top"  # 保留原基础地址（无实际使用）
-        self.base_url_net = api_url.rstrip("/")  # 网易云接口地址
-        self.apikey = apikey  # 新增：新接口apikey
-        self.new_api_base = "https://api.nycnm.cn/API/diange.php"  # 新点歌接口地址
+        self.base_url = "https://music.pmhs.top"
+        self.base_url_net = api_url.rstrip("/")
+        self.apikey = apikey
+        self.new_api_base = "https://api.nycnm.cn/API/diange.php"
 
-    # ---------------------- 新接口：搜索歌曲（替换原search_songs） ----------------------
     async def search_songs(self, keyword: str, limit: int) -> List[Dict[str, Any]]:
-        """新接口搜索歌曲，返回适配原有格式的结果"""
-        # 构造新接口搜索请求参数
         params = {
             "msg": keyword,
             "apikey": self.apikey
@@ -33,31 +30,26 @@ class API:
             r.raise_for_status()
             data = await r.json()
         
-        # 校验接口返回成功
         if not data.get("success"):
             return []
         
         converted_songs = []
-        # 截取指定数量的结果，适配原有格式
         for i, song in enumerate(data.get("data", [])[:limit], 1):
             converted_song = {
                 "id": int(song["id"]),
                 "name": song["music_name"],
-                "artists": [{"name": song["artist"]}],  # 适配原有歌手格式
-                "album": {"name": "未知专辑"},  # 新接口无专辑信息，默认未知
+                "artists": [{"name": song["artist"]}],
+                "album": {"name": "未知专辑"},
                 "row_number": i,
-                "original_id": song["id"],  # 关联新接口的歌曲id
-                "is_163": False  # 标记为非网易云歌曲
+                "original_id": song["id"],
+                "is_163": False
             }
             converted_songs.append(converted_song)
         return converted_songs
 
-    # ---------------------- 新接口：获取音频链接（替换原get_audio_url） ----------------------
     async def get_audio_url(self, song_id: str) -> Optional[str]:
-        """新接口根据歌曲id获取音频链接（music_link）"""
-        # 构造新接口播放请求参数
         params = {
-            "msg": "",  # 播放接口仍需传msg，无实际作用传空
+            "msg": "",
             "id": song_id,
             "apikey": self.apikey
         }
@@ -65,12 +57,10 @@ class API:
             r.raise_for_status()
             data = await r.json()
         
-        # 校验返回成功并提取音频链接
         if data.get("success") and data.get("data", {}).get("music_link"):
             return data["data"]["music_link"]
         return None
 
-    # ---------------------- 保留所有网易云相关_net函数（未修改） ----------------------
     async def get_song_details_net(self, song_id: int) -> Optional[Dict[str, Any]]:
         url = f"{self.base_url_net}/song/detail?ids={str(song_id)}"
         async with self.session.get(url) as r:
@@ -141,7 +131,6 @@ class Main(Star):
         self.waiting_users: Dict[str, Dict[str, Any]] = {}
         self.song_cache: Dict[str, List[Dict[str, Any]]] = {}
         self.http_session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=20))
-        # 修改：API实例化传入apikey
         self.api = API(self.config["api_url"], self.http_session, self.config["apikey"])
         self.apikey = self.config["apikey"]
         self.cleanup_task: Optional[asyncio.Task] = None
@@ -202,8 +191,8 @@ class Main(Star):
         except ValueError:
             return
 
-        limit = self.config.get("search_limit", 10)  # 增加默认值，防止配置缺失报错
-        if not (1 <= num <= limit + 1):  # 兼容网易云插入的额外结果
+        limit = self.config.get("search_limit", 10)
+        if not (1 <= num <= limit + 1):
             return
 
         event.stop_event()
@@ -212,13 +201,12 @@ class Main(Star):
         if session_id in self.waiting_users:
             del self.waiting_users[session_id]
 
-    # ---------------------- 保留网易云单独播放函数（未修改） ----------------------
     async def search_and_show_net(self, event: AstrMessageEvent, keyword: str, title: str=''):
         try:
             songs = await self.api.search_songs_net(keyword, 1)
         except Exception as e:
             logger.error(f"Netease Music plugin: API search failed. Error: {e!s}")
-            await event.send(MessageChain([Plain(f"呜喵...连接断了...请稍后再试喵？")]))
+            await event.send(MessageChain([Plain(f"请求过于频繁，慢点啊喵！")]))
             return
 
         if not songs:
@@ -257,7 +245,6 @@ class Main(Star):
             if cache_key in self.song_cache:
                 del self.song_cache[cache_key]
 
-    # ---------------------- 保留网易云发送函数（未修改） ----------------------
     async def _send_song_messages_net(self, event: AstrMessageEvent, num: int, title: str, artists: str, album: str, dur_str: str, cover_url: str, audio_url: str):
         try:
             await event.send(MessageChain([Record(file=audio_url)]))
@@ -265,9 +252,7 @@ class Main(Star):
             logger.error(f"Music plugin: Failed to send audio. Error: {e!s}")
             await event.send(MessageChain([Plain("呜...播放歌曲的时候失败了喵...可能是音频格式不支持呢")]))
             
-    # ---------------------- 修改search_and_show：网易云结果插入到最后 ----------------------
     async def search_and_show(self, event: AstrMessageEvent, keyword: str):
-        # 保留特殊歌曲本地播放逻辑（未修改）
         if keyword=="兰州一中校歌":
             try:
                 await event.send(MessageChain([Record(file=os.path.join(get_astrbot_plugin_path(), "astrbot_plugin_music_pro", "1.mp3"))]))
@@ -284,7 +269,6 @@ class Main(Star):
             return
             
         try:
-            # 调用新接口搜索+网易云搜索（未修改）
             songs = await self.api.search_songs(keyword, self.config["search_limit"])
             netease_songs = await self.api.search_songs_net(keyword, 1)
         except Exception as e:
@@ -296,18 +280,14 @@ class Main(Star):
             await event.send(MessageChain([Plain(f"找不到「{keyword}」这首歌喵... ")]))
             return
         
-        # 核心修改：网易云首个结果插入到搜索结果的**最后**
         insert_netease_song = None
         if netease_songs and len(netease_songs) > 0:
-            # 插入索引为len(songs)+1（最后一位）
             insert_netease_song = self.api.format_163_song(netease_songs[0], len(songs) + 1)
-            songs.append(insert_netease_song)  # 直接追加到末尾，替代原插入第3位逻辑
+            songs.append(insert_netease_song)
 
-        # 重新排序行号，保证连续
         for idx, song in enumerate(songs, 1):
             song["row_number"] = idx
 
-        # 原有缓存和回复逻辑（未修改）
         cache_key = f"{event.get_session_id()}_{int(time.time())}"
         self.song_cache[cache_key] = songs
 
@@ -316,21 +296,18 @@ class Main(Star):
             row_num = song["row_number"]
             artists = " / ".join(a["name"] for a in song.get("artists", []))
             album = song.get("album", {}).get("name", "未知专辑")
-            # 新增：网易云歌曲添加【网易云】标签，方便区分
             song_tag = "" if song.get("is_163", False) else ""
             response_lines.append(f"{row_num}. {song_tag}{song['name']} - {artists}")
 
         await event.send(MessageChain([Plain("\n".join(response_lines))]))
         self.waiting_users[event.get_session_id()] = {"key": cache_key, "expire": time.time() + 60}
 
-    # ---------------------- 播放函数少量优化（未修改核心逻辑） ----------------------
     async def play_selected_song(self, event: AstrMessageEvent, cache_key: str, num: int):
         if cache_key not in self.song_cache:
             await event.send(MessageChain([Plain("超时喵！")]))
             return
 
         songs = self.song_cache[cache_key]
-        # 修复：原判断逻辑错误，改为正确的索引范围
         if not (1 <= num <= len(songs)):
              await event.send(MessageChain([Plain("不对不对！请输入正确的数字喵！")]))
              return
@@ -339,7 +316,6 @@ class Main(Star):
         original_id = selected_song["original_id"]
         
         try:
-            # 网易云歌曲走原有逻辑，普通歌曲走新接口
             if selected_song.get("is_163", False):
                 audio_url = await self.api.get_163_audio_url(int(original_id))
             else:
@@ -362,7 +338,6 @@ class Main(Star):
             if cache_key in self.song_cache:
                 del self.song_cache[cache_key]
 
-    # ---------------------- 保留原有发送函数（未修改） ----------------------
     async def _send_song_messages(self, event: AstrMessageEvent, num: int, title: str, artists: str, album: str, audio_url: str):
         detail_text = f"收到！正在为你播放：{title} - {artists}"
         info_components = [Plain(detail_text)]
@@ -372,6 +347,5 @@ class Main(Star):
         try:
             await event.send(MessageChain([Record(file=audio_url)]))
         except Exception as e:
-            # 播放失败时尝试调用网易云单独播放逻辑
             logger.error(f"播放普通歌曲失败，尝试网易云接口：{e!s}")
             await self.search_and_show_net(event, title+' '+artists, title=title)
