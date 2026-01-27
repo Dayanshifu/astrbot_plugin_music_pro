@@ -9,7 +9,7 @@
     "type": "string",
     "label": "网易云API地址",
     "description": "NeteaseCloudMusicApi 服务地址",
-    "default": "https://163api.qijieya.cn"
+    "default": "https://wyy.xhily.com/"
   },
   "quality": {
     "type": "string",
