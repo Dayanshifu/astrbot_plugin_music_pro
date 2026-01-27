@@ -297,7 +297,7 @@ class Main(Star):
                 final_songs.append(netease_custom_songs[0])
         
         if len(base_custom_songs) >= 2:
-            final_songs.extend(base_custom_songs[1:self.config["search_limit"]])
+            final_songs.extend(base_custom_songs[0:self.config["search_limit"]-1])
         
         if netease_songs and len(netease_songs) > 0:
             netease_formatted = self.api.format_163_song(netease_songs[0], len(final_songs) + 1)
