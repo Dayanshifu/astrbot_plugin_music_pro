@@ -120,7 +120,7 @@ class API:
     "astrbot_plugin_music_pro", 
     "Dayanshifu", 
     "高级点歌", 
-    "1.0.6",
+    "1.0.5",
     "https://github.com/Dayanshifu/astrbot_plugin_music_pro"
 )
 class Main(Star):
