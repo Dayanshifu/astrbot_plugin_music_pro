@@ -120,7 +120,7 @@ class API:
     "astrbot_plugin_music_pro", 
     "Dayanshifu", 
     "高级点歌", 
-    "1.0.5",
+    "1.0.6",
     "https://github.com/Dayanshifu/astrbot_plugin_music_pro"
 )
 class Main(Star):
@@ -255,10 +255,6 @@ class Main(Star):
     async def search_and_show(self, event: AstrMessageEvent, keyword: str):
         if keyword=="兰州一中校歌":
             try:
-                detail_text = f"收到！正在为你播放：兰州一中校歌"
-                info_components = [Plain(detail_text)]
-
-                await event.send(MessageChain(info_components))
                 await event.send(MessageChain([Record(file=os.path.join(get_astrbot_plugin_path(), "astrbot_plugin_music_pro", "1.mp3"))]))
             except Exception as e:
                 logger.error(f"Music plugin: Failed to send audio. Error: {e!s}")
@@ -266,10 +262,6 @@ class Main(Star):
             return
         if keyword=="皇后大道东":
             try:
-                detail_text = f"收到！正在为你播放：皇后大道东 - 罗大佑"
-                info_components = [Plain(detail_text)]
-
-                await event.send(MessageChain(info_components))
                 await event.send(MessageChain([Record(file=os.path.join(get_astrbot_plugin_path(), "astrbot_plugin_music_pro", "皇后大道东.mp3"))]))
             except Exception as e:
                 logger.error(f"Music plugin: Failed to send audio. Error: {e!s}")
@@ -277,42 +269,33 @@ class Main(Star):
             return
             
         try:
+            songs = await self.api.search_songs(keyword, self.config["search_limit"])
             netease_songs = await self.api.search_songs_net(keyword, 1)
-            base_custom_songs = await self.api.search_songs(keyword, self.config["search_limit"])
         except Exception as e:
             logger.error(f"Music plugin: API search failed. Error: {e!s}")
             await event.send(MessageChain([Plain(f"呜喵...连接断了...请稍后再试喵？")]))
             return
 
-        if not base_custom_songs:
+        if not songs:
             await event.send(MessageChain([Plain(f"找不到「{keyword}」这首歌喵... ")]))
             return
         
-        final_songs = []
+        insert_netease_song = None
         if netease_songs and len(netease_songs) > 0:
-            netease_first = netease_songs[0]
-            netease_keyword = f"{netease_first['name']} {' / '.join(a['name'] for a in netease_first['artists'])}"
-            netease_custom_songs = await self.api.search_songs(netease_keyword, 1)
-            if netease_custom_songs:
-                final_songs.append(netease_custom_songs[0])
-        
-        if len(base_custom_songs) >= 2:
-            final_songs.extend(base_custom_songs[0:self.config["search_limit"]-1])
-        
-        if netease_songs and len(netease_songs) > 0:
-            netease_formatted = self.api.format_163_song(netease_songs[0], len(final_songs) + 1)
-            final_songs.append(netease_formatted)
+            insert_netease_song = self.api.format_163_song(netease_songs[0], len(songs) + 1)
+            songs.append(insert_netease_song)
 
-        for idx, song in enumerate(final_songs, 1):
+        for idx, song in enumerate(songs, 1):
             song["row_number"] = idx
 
         cache_key = f"{event.get_session_id()}_{int(time.time())}"
-        self.song_cache[cache_key] = final_songs
+        self.song_cache[cache_key] = songs
 
-        response_lines = [f"找到了 {len(final_songs)} 首歌曲喵！请回复数字喵！"]
-        for song in final_songs:
+        response_lines = [f"找到了 {len(songs)} 首歌曲喵！请回复数字喵！"]
+        for song in songs:
             row_num = song["row_number"]
             artists = " / ".join(a["name"] for a in song.get("artists", []))
+            album = song.get("album", {}).get("name", "未知专辑")
             song_tag = "" if song.get("is_163", False) else ""
             response_lines.append(f"{row_num}. {song_tag}{song['name']} - {artists}")
 
