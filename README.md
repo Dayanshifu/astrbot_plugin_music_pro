@@ -2,8 +2,6 @@
 
 AstrBot点歌插件，智能使用多个api，达成免费听各种音乐
 
-**修改自[astrbot_plugin_qymusic](https://github.com/pmh1314520/astrbot_plugin_qymusic)，[netease-music-astrbot-plugin](https://github.com/NachoCrazy/netease-music-astrbot-plugin)**
-
 ## 安装与配置
 
 ### apikey
@@ -40,3 +38,4 @@ https://wyy.xhily.com/
 /点歌 青花
 ```
 在机器人返回搜索列表后，想听的歌对应的**数字**即可。
+
