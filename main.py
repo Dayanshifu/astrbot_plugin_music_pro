@@ -40,7 +40,7 @@ class API:
                 "name": song["music_name"],
                 "artists": [{"name": song["artist"]}],
                 "album": {"name": "未知专辑"},
-                "row_number": i,
+                "row_number": i,  # 初始序号从1开始
                 "original_id": song["id"],
                 "is_163": False
             }
@@ -111,7 +111,7 @@ class API:
             "name": song_data["name"],
             "artists": song_data["artists"],
             "album": {"name": song_data["album"]["name"]},
-            "row_number": insert_index,
+            "row_number": insert_index,  # 插入位置的序号
             "original_id": song_data["id"],
             "is_163": True
         }
@@ -192,7 +192,13 @@ class Main(Star):
             return
 
         limit = self.config.get("search_limit", 10)
-        if not (1 <= num <= limit + 1):
+        # 修正：限制应该基于缓存中的歌曲数量，而不是固定的search_limit+1
+        cache_key = user_session["key"]
+        if cache_key not in self.song_cache:
+            return
+        song_count = len(self.song_cache[cache_key])
+        if not (1 <= num <= song_count):
+            await event.send(MessageChain([Plain(f"请输入1-{song_count}之间的数字喵！")]))
             return
 
         event.stop_event()
@@ -269,6 +275,7 @@ class Main(Star):
             return
             
         try:
+            # 获取基础歌曲列表（带正确的初始序号）
             songs = await self.api.search_songs(keyword, self.config["search_limit"])
             netease_songs = await self.api.search_songs_net(keyword, 1)
         except Exception as e:
@@ -280,23 +287,23 @@ class Main(Star):
             await event.send(MessageChain([Plain(f"找不到「{keyword}」这首歌喵... ")]))
             return
         
-        insert_netease_song = None
+        # 插入网易云歌曲（序号为当前列表长度+1）
         if netease_songs and len(netease_songs) > 0:
-            insert_netease_song = self.api.format_163_song(netease_songs[0], len(songs) + 1)
-            songs.append(insert_netease_song)
+            insert_index = len(songs) + 1  # 新歌曲的序号
+            netease_song = self.api.format_163_song(netease_songs[0], insert_index)
+            songs.append(netease_song)
 
-        for idx, song in enumerate(songs, 1):
-            song["row_number"] = idx
-
+        # 缓存歌曲列表
         cache_key = f"{event.get_session_id()}_{int(time.time())}"
         self.song_cache[cache_key] = songs
 
+        # 构建回复消息（使用歌曲自带的row_number）
         response_lines = [f"找到了 {len(songs)} 首歌曲喵！请回复数字喵！"]
         for song in songs:
             row_num = song["row_number"]
             artists = " / ".join(a["name"] for a in song.get("artists", []))
             album = song.get("album", {}).get("name", "未知专辑")
-            song_tag = "" if song.get("is_163", False) else ""
+            song_tag = "[网易云]" if song.get("is_163", False) else ""
             response_lines.append(f"{row_num}. {song_tag}{song['name']} - {artists}")
 
         await event.send(MessageChain([Plain("\n".join(response_lines))]))
@@ -308,11 +315,17 @@ class Main(Star):
             return
 
         songs = self.song_cache[cache_key]
-        if not (1 <= num <= len(songs)):
-             await event.send(MessageChain([Plain("不对不对！请输入正确的数字喵！")]))
-             return
+        # 修正：通过row_number匹配用户选择的数字，而不是直接用索引
+        selected_song = None
+        for song in songs:
+            if song["row_number"] == num:
+                selected_song = song
+                break
+        
+        if not selected_song:
+            await event.send(MessageChain([Plain("不对不对！请输入正确的数字喵！")]))
+            return
              
-        selected_song = songs[num - 1]
         original_id = selected_song["original_id"]
         
         try:
