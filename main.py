@@ -19,7 +19,7 @@ class API:
         self.base_url = "https://music.pmhs.top"
         self.base_url_net = api_url.rstrip("/")
         self.apikey = apikey
-        self.new_api_base = "https://api.nycnm.cn/API/diange.php"
+        self.new_api_base = "https://api.nycnm.cn/api/v2/diange"
 
     async def search_songs(self, keyword: str, limit: int) -> List[Dict[str, Any]]:
         params = {
