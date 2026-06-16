@@ -21,21 +21,18 @@ class API:
         self.apikey = apikey
         self.new_api_base = "https://api.nycnm.cn/api/v2/diange"
 
+    
     async def search_songs(self, keyword: str, limit: int) -> List[Dict[str, Any]]:
-        params = {
-            "msg": keyword,
-            "apikey": self.apikey
-        }
+        params = {"msg": keyword, "apikey": self.apikey}
         async with self.session.get(self.new_api_base, params=params) as r:
             r.raise_for_status()
-            data = await r.json()
-        
-        if not data.get("success"):
+            resp = await r.json()
+        if resp.get("code") != 200:
             return []
-        
-        converted_songs = []
-        for i, song in enumerate(data.get("data", [])[:limit], 1):
-            converted_song = {
+        raw = resp.get("data", [])[:limit]
+        converted = []
+        for i, song in enumerate(raw, 1):
+            converted.append({
                 "id": int(song["id"]),
                 "name": song["music_name"],
                 "artists": [{"name": song["artist"]}],
@@ -43,22 +40,16 @@ class API:
                 "row_number": i,
                 "original_id": song["id"],
                 "is_163": False
-            }
-            converted_songs.append(converted_song)
-        return converted_songs
+            })
+        return converted
 
     async def get_audio_url(self, song_id: str) -> Optional[str]:
-        params = {
-            "msg": "",
-            "id": song_id,
-            "apikey": self.apikey
-        }
+        params = {"msg": "", "id": song_id, "apikey": self.apikey}
         async with self.session.get(self.new_api_base, params=params) as r:
             r.raise_for_status()
-            data = await r.json()
-        
-        if data.get("success") and data.get("data", {}).get("music_link"):
-            return data["data"]["music_link"]
+            resp = await r.json()
+        if resp.get("code") == 200 and resp.get("data", {}).get("music_link"):
+            return resp["data"]["music_link"]
         return None
 
     async def get_song_details_net(self, song_id: int) -> Optional[Dict[str, Any]]:
