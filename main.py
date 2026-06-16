@@ -209,9 +209,6 @@ class Main(Star):
             await event.send(MessageChain([Plain(f"请求过于频繁，慢点啊喵！")]))
             return
 
-        if not songs:
-            await event.send(MessageChain([Plain(f"找不到「{title}」这首歌喵... ")]))
-            return
 
         cache_key = f"{event.get_session_id()}_{int(time.time())}"
         self.song_cache[cache_key] = songs
@@ -268,17 +265,9 @@ class Main(Star):
                 await event.send(MessageChain([Plain("呜...播放歌曲的时候失败了喵...可能是音频格式不支持呢")]))
             return
             
-        try:
-            songs = await self.api.search_songs(keyword, self.config["search_limit"])
-            netease_songs = await self.api.search_songs_net(keyword, 1)
-        except Exception as e:
-            logger.error(f"Music plugin: API search failed. Error: {e!s}")
-            await event.send(MessageChain([Plain(f"呜喵...连接断了...请稍后再试喵？")]))
-            return
+        songs = await self.api.search_songs(keyword, self.config["search_limit"])
+        netease_songs = await self.api.search_songs_net(keyword, 1)
 
-        if not songs:
-            await event.send(MessageChain([Plain(f"找不到「{keyword}」这首歌喵... ")]))
-            return
         
         insert_netease_song = None
         if netease_songs and len(netease_songs) > 0:
